@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grand Cinema Booking</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-light">
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">🎭 Grand Cinema</a>
+            <div class="d-flex">
+                <button id="nav-login" class="btn btn-outline-light btn-sm me-2">Вхід</button>
+                <button id="nav-register" class="btn btn-warning btn-sm me-2">Реєстрація</button>
+                <button id="nav-logout" class="btn btn-danger btn-sm d-none">Вихід</button>
+                <span id="user-display" class="navbar-text ms-3 text-white"></span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div id="alert-box" class="alert d-none"></div>
+
+        <div id="view-login" class="view-section">
+            <div class="card mx-auto" style="max-width: 400px;">
+                <div class="card-body">
+                    <h4 class="card-title text-center">Вхід у систему</h4>
+                    <form id="login-form">
+                        <div class="mb-3">
+                            <label>Username</label>
+                            <input type="text" id="login-username" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>Password</label>
+                            <input type="password" id="login-password" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Увійти</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-movies" class="view-section d-none">
+            <h2 class="mb-3">Афіша</h2>
+            <div id="movies-container" class="row">
+                </div>
+        </div>
+
+        <div id="view-hall" class="view-section d-none">
+            <button id="back-to-movies" class="btn btn-secondary mb-3">← Назад до афіші</button>
+            <h3 id="session-title"></h3>
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="screen mb-4">ЕКРАН</div>
+                    <div id="hall-container" class="hall-wrapper"></div>
+                </div>
+            </div>
+            <div class="mt-3 text-end">
+                <h4>До сплати: <span id="total-price">0</span> грн</h4>
+                <button id="btn-book" class="btn btn-success btn-lg" disabled>Забронювати</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/hall.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
