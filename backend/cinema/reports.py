@@ -1,12 +1,7 @@
-# backend/cinema/reports.py
-
 from django.db.models import Sum
 from bookings.models import Ticket
 from halls.models import Seat
 
-# === 1. ШАБЛОНИ (HTML/CSS/JS) ===
-
-# Початок файлу (Стилі + Скрипт PDF)
 HTML_HEAD = """
 <!DOCTYPE html>
 <html lang="uk">
@@ -74,8 +69,6 @@ HTML_FOOTER = """
 """
 
 
-# === 2. ЛОГІКА ГЕНЕРАЦІЇ ЗВІТІВ ===
-
 def generate_sold_tickets_report(sessions):
     """
     Звіт 1: Продані квитки за певний період.
@@ -86,7 +79,6 @@ def generate_sold_tickets_report(sessions):
     total_sum = 0
 
     for session in sessions:
-        # Шукаємо продані квитки
         tickets = Ticket.objects.filter(session=session, status__in=['SOLD', 'BOOKED'])
 
         for t in tickets:
@@ -137,10 +129,9 @@ def generate_revenue_report(sessions):
     grand_total = 0
 
     for session in sessions:
-        # Агрегуємо суму по сеансу
         data = Ticket.objects.filter(session=session, status__in=['SOLD', 'BOOKED']).aggregate(
             total_money=Sum('price'),
-            count=Sum('id')  # Count trick is safer done via .count() separately
+            count=Sum('id')
         )
         count = Ticket.objects.filter(session=session, status__in=['SOLD', 'BOOKED']).count()
         revenue = data['total_money'] or 0
@@ -192,7 +183,6 @@ def generate_occupancy_report(sessions):
     rows = ""
 
     for session in sessions:
-        # Всього місць у залі (рахуємо всі компоненти типу Seat)
         total_seats = session.hall.all_components.filter(seat__isnull=False).count()
         sold = Ticket.objects.filter(session=session, status__in=['SOLD', 'BOOKED']).count()
 
@@ -200,12 +190,10 @@ def generate_occupancy_report(sessions):
         if total_seats > 0:
             percent = round((sold / total_seats) * 100, 1)
 
-        # Колір статусу
-        status_color = "text-danger"  # Мало людей
+        status_color = "text-danger"
         if percent > 50: status_color = "text-warning"
         if percent > 80: status_color = "text-success"
 
-        # Прогрес-бар
         bar_html = f"""
         <div style="background:#e9ecef; width:100%; height:20px; border-radius:10px; overflow:hidden;">
             <div style="width:{percent}%; background:{'#28a745' if percent > 50 else '#dc3545'}; height:100%;"></div>

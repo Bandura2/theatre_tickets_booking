@@ -17,7 +17,7 @@ class OnlineBookingCreator(BookingCreator):
 
         for ticket in tickets_list:
             state = FreeState(ticket)
-            state.book()  # Зміна статусу через State
+            state.book()
             ticket.booking = booking
             ticket.save()
             total += strategy.calculate(ticket.price)

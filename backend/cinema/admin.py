@@ -4,7 +4,6 @@ from django.http import HttpResponse
 from .models import Movie, Session
 from bookings.models import Ticket
 
-# Імпортуємо наш новий файл зі звітами
 from .reports import (
     generate_sold_tickets_report,
     generate_revenue_report,
@@ -20,31 +19,25 @@ class MovieAdmin(admin.ModelAdmin):
 @admin.register(Session)
 class SessionAdmin(admin.ModelAdmin):
     list_display = ('movie', 'hall', 'start_time', 'get_sold_tickets', 'get_revenue', 'get_occupancy')
-    # Додаємо фільтри, щоб адмін міг обрати "певний період" перед генерацією звіту
     list_filter = ('start_time', 'hall', 'movie')
 
-    # Реєструємо 3 дії
     actions = ['action_report_tickets', 'action_report_revenue', 'action_report_occupancy']
 
-    # --- ДІЯ 1 ---
     @admin.action(description="📄 Звіт: Продані квитки (Детально)")
     def action_report_tickets(self, request, queryset):
         html_content = generate_sold_tickets_report(queryset)
         return HttpResponse(html_content)
 
-    # --- ДІЯ 2 ---
     @admin.action(description="💰 Звіт: Виручка (По сеансах)")
     def action_report_revenue(self, request, queryset):
         html_content = generate_revenue_report(queryset)
         return HttpResponse(html_content)
 
-    # --- ДІЯ 3 ---
     @admin.action(description="📊 Звіт: Завантаженість залів")
     def action_report_occupancy(self, request, queryset):
         html_content = generate_occupancy_report(queryset)
         return HttpResponse(html_content)
 
-    # --- Допоміжні методи для списку ---
     def get_sold_tickets(self, obj):
         return Ticket.objects.filter(session=obj, status__in=['SOLD', 'BOOKED']).count()
 

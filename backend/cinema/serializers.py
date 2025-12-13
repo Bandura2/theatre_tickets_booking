@@ -11,13 +11,14 @@ class MovieSerializer(serializers.ModelSerializer):
 class SessionSerializer(serializers.ModelSerializer):
     movie_title = serializers.CharField(source='movie.title', read_only=True)
     hall_name = serializers.CharField(source='hall.name', read_only=True)
-
-    # === ДОДАЄМО ПОЛЕ ДЛЯ ПОСТЕРА ===
+    genre = serializers.CharField(source='movie.genre', read_only=True)
     movie_poster = serializers.ImageField(source='movie.poster', read_only=True)
-
-    # ================================
+    description = serializers.CharField(source='movie.description', read_only=True)
 
     class Meta:
         model = Session
-        # Додайте movie_poster у список полів
-        fields = ['id', 'movie', 'movie_title', 'movie_poster', 'hall', 'hall_name', 'start_time', 'price_base']
+        fields = [
+            'id', 'movie', 'movie_title', 'movie_poster',
+            'genre', 'description',  # <--- ТУТ
+            'hall', 'hall_name', 'start_time', 'price_base'
+        ]

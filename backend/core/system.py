@@ -1,4 +1,3 @@
-
 class CinemaSystem:
     """
     Реалізація патерну Singleton для головної системи кінотеатру.
@@ -9,7 +8,6 @@ class CinemaSystem:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(CinemaSystem, cls).__new__(cls)
-            # Тут можна ініціалізувати підключення до зовнішніх сервісів
             cls._instance.name = "My Grand Cinema"
             cls._instance.is_open = True
         return cls._instance

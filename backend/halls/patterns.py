@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
 
 
-# === Чиста реалізація Composite Pattern для звіту ===
-
 class IHallComponent(ABC):
     """Інтерфейс компонента"""
 
@@ -49,5 +47,4 @@ class SeatGroupComposite(IHallComponent):
         return "\n".join(results)
 
     def get_price(self) -> float:
-        # Сума цін всіх дітей
         return sum(child.get_price() for child in self.children)

@@ -27,7 +27,6 @@ class SeatGroup(HallComponent):
 
 
 class Seat(HallComponent):
-    # Визначаємо можливі типи
     SEAT_TYPES = [
         ('STD', 'Standard'),
         ('VIP', 'VIP'),
@@ -35,15 +34,14 @@ class Seat(HallComponent):
     ]
 
     number = models.IntegerField()
-    # Замість is_vip використовуємо seat_type
     seat_type = models.CharField(max_length=3, choices=SEAT_TYPES, default='STD')
 
     def get_price_modifier(self):
         if self.seat_type == 'VIP':
             return 1.5
-        elif self.seat_type == 'BLC':  # Логіка для Балкону
+        elif self.seat_type == 'BLC':
             return 0.9
-        return 1.0  # Standard
+        return 1.0
 
     class Meta:
         verbose_name = "Seat"

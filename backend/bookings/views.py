@@ -15,18 +15,15 @@ class BookingViewSet(viewsets.ModelViewSet):
     serializer_class = BookingSerializer
 
     def get_queryset(self):
-        # 1. Для дії cancel або детального перегляду - шукаємо по всій базі
         if self.action in ['cancel', 'retrieve', 'destroy']:
             return Booking.objects.all()
 
-        # 2. Фільтрація по user_id для історії
         user_id = self.request.query_params.get('user_id')
         queryset = Booking.objects.all().order_by('-created_at')
 
         if user_id:
             return queryset.filter(user_id=user_id)
 
-        # 3. Адмін бачить все
         user = self.request.user
         if user.is_staff or user.is_superuser:
             return queryset
@@ -103,7 +100,6 @@ class BookingViewSet(viewsets.ModelViewSet):
     def cancel(self, request, pk=None):
         booking = self.get_object()
 
-        # Перевірка прав (власник або адмін)
         user_id = request.data.get('user_id')
         is_owner = str(booking.user.id) == str(user_id)
         is_admin = request.user.is_staff or request.user.is_superuser

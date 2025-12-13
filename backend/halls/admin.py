@@ -1,4 +1,3 @@
-# backend/halls/admin.py
 from django.contrib import admin
 from .models import Hall, SeatGroup, Seat
 
@@ -7,7 +6,7 @@ class SeatInline(admin.TabularInline):
     model = Seat
     fk_name = 'parent'
     extra = 0
-    fields = ('number', 'seat_type')  # Показуємо тип замість is_vip
+    fields = ('number', 'seat_type')
     can_delete = True
 
 
@@ -23,23 +22,19 @@ class SeatGroupAdmin(admin.ModelAdmin):
     inlines = [SeatInline]
     actions = ['generate_10_standard', 'generate_10_vip', 'generate_10_balcony', 'clear_seats']
 
-    # 1. Standard
     @admin.action(description="⚡ [AUTO] Додати 10 звичайних місць")
     def generate_10_standard(self, request, queryset):
         # Передаємо request далі
         self._generate_seats(request, queryset, 'STD', "Standard")
 
-    # 2. VIP
     @admin.action(description="⚡ [AUTO] Додати 10 VIP місць")
     def generate_10_vip(self, request, queryset):
         self._generate_seats(request, queryset, 'VIP', "VIP")
 
-    # 3. BALCONY
     @admin.action(description="⚡ [AUTO] Додати 10 місць (Балкон -10%%)")
     def generate_10_balcony(self, request, queryset):
         self._generate_seats(request, queryset, 'BLC', "Balcony")
 
-    # === ВИПРАВЛЕНО: Додано аргумент request ===
     def _generate_seats(self, request, queryset, type_code, type_name):
         count = 0
         for group in queryset:
@@ -56,7 +51,6 @@ class SeatGroupAdmin(admin.ModelAdmin):
                 )
                 count += 1
 
-        # Тепер request доступний і повідомлення спрацює
         self.message_user(request, f"Успішно створено {count} місць типу {type_name}.")
 
     @admin.action(description="❌ Видалити всі місця в обраних рядах")
