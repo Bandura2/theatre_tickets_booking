@@ -46,5 +46,13 @@
 
 .seat.standard { background-color: #0d6efd; color: white; }
 .seat.vip { background-color: #ffc107; color: black; border: 2px solid #b68b09; }
+
+/* НОВИЙ СТИЛЬ ДЛЯ БАЛКОНУ */
+.seat.balcony { 
+    background-color: #17a2b8; /* Бірюзовий */
+    color: white; 
+    border: 2px solid #117a8b;
+}
+
 .seat.selected { background-color: #198754; color: white; box-shadow: 0 0 10px #198754; }
 .seat.occupied { background-color: #6c757d; cursor: not-allowed; opacity: 0.6; }
