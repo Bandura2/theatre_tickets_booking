@@ -5,28 +5,24 @@ from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from rest_framework import permissions
 
-# Імпорти наших Views
+from django.conf import settings
+from django.conf.urls.static import static
+
 from users.views import UserViewSet
-from cinema.views import MovieViewSet, SessionViewSet
+from cinema.views import MovieViewSet, SessionViewSet, download_sales_report
 from halls.views import HallViewSet
 from bookings.views import BookingViewSet, TicketViewSet
 
-# Налаштування роутера (автоматично створює посилання /api/movies/, /api/users/ тощо)
 router = DefaultRouter()
 router.register(r'users', UserViewSet)
 router.register(r'movies', MovieViewSet)
 router.register(r'sessions', SessionViewSet)
 router.register(r'halls', HallViewSet)
-router.register(r'bookings', BookingViewSet)
-router.register(r'tickets', TicketViewSet)
+router.register(r'bookings', BookingViewSet, basename='bookings')
+router.register(r'tickets', TicketViewSet, basename='tickets')
 
-# Налаштування Swagger (документація)
 schema_view = get_schema_view(
-    openapi.Info(
-        title="Cinema Booking API",
-        default_version='v1',
-        description="API for Coursework Project 11",
-    ),
+    openapi.Info(title="Cinema API", default_version='v1'),
     public=True,
     permission_classes=(permissions.AllowAny,),
 )
@@ -35,6 +31,19 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
 
-    # Swagger Documentation URLs
+    # URL для скачування CSV звіту
+    path('api/reports/download/', download_sales_report, name='download_report'),
+
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
 ]
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('api/', include(router.urls)),
+    path('api/reports/download/', download_sales_report, name='download_report'),
+    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+]
+
+# === ДОДАТИ ЦЕЙ БЛОК В КІНЕЦЬ ===
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

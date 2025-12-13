@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Client
+from .models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -7,15 +7,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'is_client', 'is_admin_user']
+        fields = ['id', 'username', 'email', 'password', 'is_client', 'is_admin_user', 'is_superuser', 'is_staff']
 
     def create(self, validated_data):
-        # Перевизначаємо створення, щоб хешувати пароль
         user = User.objects.create_user(**validated_data)
         return user
-
-
-class ClientSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Client
-        fields = '__all__'
