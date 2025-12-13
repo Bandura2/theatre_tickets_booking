@@ -6,8 +6,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const discountSelect = document.getElementById('discount-select');
 
     if (bookBtn) bookBtn.addEventListener('click', bookTickets);
-    
-    // Слухаємо зміну знижки
     if (discountSelect) {
         discountSelect.addEventListener('change', handleDiscountChange);
     }
@@ -18,11 +16,9 @@ function handleDiscountChange() {
     const studentGroup = document.getElementById('student-input-group');
     const promoGroup = document.getElementById('promo-input-group');
 
-    // Скидаємо видимість
     studentGroup.classList.add('d-none');
     promoGroup.classList.add('d-none');
 
-    // Показуємо потрібне поле
     if (type === 'STUDENT') {
         studentGroup.classList.remove('d-none');
     } else if (type === 'PROMO') {
@@ -37,11 +33,10 @@ function clearHall() {
     selectedSeats = [];
     seatInfo = {};
     
-    // Скидаємо форми
     const discountSelect = document.getElementById('discount-select');
     if(discountSelect) {
         discountSelect.value = "NO";
-        handleDiscountChange(); // Сховає поля вводу
+        handleDiscountChange();
     }
     document.getElementById('student-id-input').value = '';
     document.getElementById('promo-code-input').value = '';
@@ -78,8 +73,6 @@ function renderComponent(component, container, occupiedSet = new Set()) {
             
             seatBtn.className = `seat ${cssClass}`;
             seatBtn.textContent = seatNum;
-            
-            // Ціну в title не пишемо жорстко, бо вона залежить від знижки
             seatBtn.title = `Місце ${seatNum} (${type})`;
             seatBtn.onclick = () => toggleSeat(seatId, seatBtn);
         }
@@ -105,7 +98,6 @@ function updateTotalPrice() {
     let total = 0;
     const basePrice = window.currentSessionBasePrice || 0;
 
-    // Frontend розраховує ціну "оптимістично" (припускаючи, що промокод введуть правильно)
     let discountMultiplier = 1.0;
     if (discountSelect.value === 'STUDENT') discountMultiplier = 0.8;
     if (discountSelect.value === 'PROMO') discountMultiplier = 0.9;
@@ -147,7 +139,6 @@ async function bookTickets() {
         session_id: window.currentSessionId,
         seat_ids: selectedSeats,
         discount_type: discountType,
-        // Передаємо нові поля
         student_id: studentId,
         promo_code: promoCode
     };
@@ -156,7 +147,6 @@ async function bookTickets() {
     btn.disabled = true;
     btn.innerText = "Обробка...";
 
-    // Відправляємо запит. Якщо промокод невірний, бекенд поверне 400 і apiRequest викине alert з помилкою
     const response = await apiRequest('/bookings/create_online/', 'POST', body);
 
     if (response) {

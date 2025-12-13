@@ -1,12 +1,10 @@
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Кнопка в меню
     const navProfile = document.getElementById('nav-profile');
     if (navProfile) {
         navProfile.addEventListener('click', openProfile);
     }
 
-    // Форма звіту
     const reportForm = document.getElementById('report-form');
     if (reportForm) {
         reportForm.addEventListener('submit', downloadFilteredReport);
@@ -20,11 +18,9 @@ async function openProfile() {
     if (!userStr) return;
     const user = JSON.parse(userStr);
 
-    // 1. Заповнюємо інфо
     document.getElementById('profile-username').innerText = user.username;
     document.getElementById('profile-email').innerText = user.email;
     
-    // 2. Перевіряємо чи Адмін
     const adminPanel = document.getElementById('admin-controls');
     const roleText = document.getElementById('profile-role');
     
@@ -38,11 +34,8 @@ async function openProfile() {
         roleText.className = "text-muted";
     }
 
-    // 3. Завантажуємо історію
     loadBookings();
 }
-
-// frontend/js/profile.js
 
 async function loadBookings() {
     const container = document.getElementById('bookings-list');
@@ -62,14 +55,12 @@ async function loadBookings() {
     container.innerHTML = '';
     
     bookings.forEach(booking => {
-        // Беремо деталі сеансу з першого квитка (бо всі квитки в замовленні на один сеанс)
         const firstTicket = booking.tickets[0];
         
         let sessionInfo = "Деталі недоступні (квитки видалено)";
         let seatsInfo = "";
 
         if (firstTicket) {
-            // Форматуємо дату сеансу
             const sessionDate = new Date(firstTicket.start_time).toLocaleString('uk-UA', {
                 day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'
             });
@@ -82,7 +73,6 @@ async function loadBookings() {
                 </div>
             `;
 
-            // Формуємо список місць
             seatsInfo = booking.tickets.map(t => {
                 const type = t.is_vip ? '<span class="badge bg-warning text-dark" style="font-size:0.7em">VIP</span>' : '';
                 return `<span class="badge bg-secondary">Місце ${t.seat_number} ${type}</span>`;
@@ -115,22 +105,19 @@ async function loadBookings() {
 async function cancelBooking(id) {
     if (!confirm("Ви впевнені, що хочете скасувати це бронювання?")) return;
 
-    // 1. Отримуємо поточного користувача з пам'яті
     const userStr = localStorage.getItem('currentUser');
     if (!userStr) return;
     const user = JSON.parse(userStr);
 
-    // 2. Формуємо тіло запиту з ID
     const body = {
         user_id: user.id
     };
 
-    // 3. Відправляємо POST запит з даними
     const response = await apiRequest(`/bookings/${id}/cancel/`, 'POST', body);
     
     if (response) {
         alert("Бронювання скасовано!");
-        loadBookings(); // Оновлюємо список
+        loadBookings();
     }
 }
 
@@ -141,11 +128,9 @@ function downloadFilteredReport(e) {
 
     let url = "http://127.0.0.1:8000/api/reports/download/";
     
-    // Додаємо параметри дати
     if (start && end) {
         url += `?start_date=${start}&end_date=${end}`;
     }
 
-    // Відкриваємо посилання для скачування
     window.open(url, '_blank');
 }

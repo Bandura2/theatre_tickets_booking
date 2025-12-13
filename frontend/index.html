@@ -73,8 +73,35 @@
 
         <div id="view-movies" class="view-section d-none">
             <h2 class="mb-3">Найближчі покази</h2>
-            <div id="movies-container" class="row">
+
+            <div class="card mb-4 p-3 bg-light border-0">
+                <div class="row g-2 align-items-center">
+                    <div class="col-md-3">
+                        <input type="text" id="filter-title" class="form-control" placeholder="🔍 Назва фільму...">
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white">📅</span>
+                            <input type="date" id="filter-date-start" class="form-control" title="З дати">
+                            <span class="input-group-text">-</span>
+                            <input type="date" id="filter-date-end" class="form-control" title="По дату">
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <select id="filter-genre" class="form-select">
+                            <option value="">Всі жанри</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">❌ Скинути</button>
+                    </div>
                 </div>
+            </div>
+            <div id="movies-container" class="row">
+            </div>
         </div>
 
         <div id="view-profile" class="view-section d-none">
