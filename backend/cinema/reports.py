@@ -1,6 +1,7 @@
-from django.db.models import Sum
+from django.db.models import Sum, Count, Q
 from bookings.models import Ticket
 from halls.models import Seat
+
 
 HTML_HEAD = """
 <!DOCTYPE html>
@@ -28,17 +29,19 @@ HTML_HEAD = """
         h1 { text-align: center; color: #007bff; margin-bottom: 5px; }
         .subtitle { text-align: center; color: #666; margin-bottom: 30px; font-size: 14px; }
 
-        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-        th, td { border: 1px solid #dee2e6; padding: 10px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px; }
+        th, td { border: 1px solid #dee2e6; padding: 8px; text-align: center; }
         th { background: #e9ecef; font-weight: bold; }
-        td { font-size: 14px; }
 
-        /* Кольори для статистики */
-        .text-success { color: #28a745; font-weight: bold; }
-        .text-warning { color: #ffc107; font-weight: bold; }
-        .text-danger { color: #dc3545; font-weight: bold; }
+        /* Статуси */
+        .badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+        .badge-sold { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .badge-booked { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
 
-        .total-row { background: #fff3cd; font-weight: bold; }
+        .text-money { font-weight: bold; color: #28a745; }
+        .text-pending { font-weight: bold; color: #ffc107; }
+
+        .total-row { background: #f8f9fa; font-weight: bold; border-top: 2px solid #dee2e6; }
     </style>
 </head>
 <body>
@@ -48,14 +51,13 @@ HTML_HEAD = """
     <div id="report-body" class="report-content">
 """
 
-# Кінець файлу (Скрипт збереження)
 HTML_FOOTER = """
     </div>
     <script>
         function savePDF() {
             const element = document.getElementById('report-body');
             const opt = {
-                margin: 0.5,
+                margin: 0.3,
                 filename: 'Report_GrandCinema.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2 },
@@ -69,19 +71,33 @@ HTML_FOOTER = """
 """
 
 
+# === 2. ЛОГІКА ГЕНЕРАЦІЇ ЗВІТІВ ===
+
 def generate_sold_tickets_report(sessions):
     """
-    Звіт 1: Продані квитки за певний період.
-    Показує список всіх проданих квитків детально.
+    Звіт 1: Детальний список квитків.
+    Розділяє SOLD (Оплачено) та BOOKED (Резерв).
     """
     rows = ""
-    total_count = 0
-    total_sum = 0
+    count_sold = 0
+    sum_sold = 0
+    count_booked = 0
+    sum_booked = 0
 
     for session in sessions:
-        tickets = Ticket.objects.filter(session=session, status__in=['SOLD', 'BOOKED'])
+        tickets = Ticket.objects.filter(session=session, status__in=['SOLD', 'BOOKED']).select_related('seat')
 
         for t in tickets:
+            status_badge = ""
+            if t.status == 'SOLD':
+                status_badge = '<span class="badge badge-sold">ОПЛАЧЕНО</span>'
+                count_sold += 1
+                sum_sold += t.price
+            else:
+                status_badge = '<span class="badge badge-booked">РЕЗЕРВ</span>'
+                count_booked += 1
+                sum_booked += t.price
+
             rows += f"""
             <tr>
                 <td>{session.start_time.strftime("%d.%m.%Y %H:%M")}</td>
@@ -89,30 +105,33 @@ def generate_sold_tickets_report(sessions):
                 <td>{session.hall.name}</td>
                 <td>Місце {t.seat.number} ({t.seat.get_seat_type_display()})</td>
                 <td>{t.price} грн</td>
+                <td>{status_badge}</td>
             </tr>
             """
-            total_count += 1
-            total_sum += t.price
 
     table = f"""
-    <h1>Звіт: Продані квитки</h1>
-    <div class="subtitle">Детальний список транзакцій за обраний період</div>
+    <h1>Звіт: Рух квитків</h1>
+    <div class="subtitle">Деталізація за статусами оплати</div>
     <table>
         <thead>
             <tr>
-                <th>Дата та Час</th>
+                <th>Дата</th>
                 <th>Фільм</th>
                 <th>Зал</th>
                 <th>Місце</th>
                 <th>Ціна</th>
+                <th>Статус</th>
             </tr>
         </thead>
         <tbody>
             {rows}
             <tr class="total-row">
-                <td colspan="3">ВСЬОГО</td>
-                <td>{total_count} шт.</td>
-                <td>{total_sum} грн</td>
+                <td colspan="4" style="text-align:right">ПІДСУМОК (ОПЛАЧЕНО):</td>
+                <td colspan="2" class="text-money">{count_sold} шт. / {sum_sold} грн</td>
+            </tr>
+            <tr class="total-row">
+                <td colspan="4" style="text-align:right">ПІДСУМОК (РЕЗЕРВ):</td>
+                <td colspan="2" class="text-pending">{count_booked} шт. / {sum_booked} грн</td>
             </tr>
         </tbody>
     </table>
@@ -122,52 +141,73 @@ def generate_sold_tickets_report(sessions):
 
 def generate_revenue_report(sessions):
     """
-    Звіт 2: Виручка по кожній виставі/сеансу.
-    Згрупована таблиця (один рядок = один сеанс).
+    Звіт 2: Фінансовий звіт.
+    Показує Реальні гроші (SOLD) та Потенційні (BOOKED) окремо.
     """
     rows = ""
-    grand_total = 0
+    total_real_revenue = 0
+    total_potential_revenue = 0
 
     for session in sessions:
-        data = Ticket.objects.filter(session=session, status__in=['SOLD', 'BOOKED']).aggregate(
-            total_money=Sum('price'),
-            count=Sum('id')
+        # Агрегація SOLD
+        sold_data = Ticket.objects.filter(session=session, status='SOLD').aggregate(
+            qty=Count('id'), total=Sum('price')
         )
-        count = Ticket.objects.filter(session=session, status__in=['SOLD', 'BOOKED']).count()
-        revenue = data['total_money'] or 0
+        sold_qty = sold_data['qty'] or 0
+        sold_sum = sold_data['total'] or 0
 
-        grand_total += revenue
+        # Агрегація BOOKED
+        booked_data = Ticket.objects.filter(session=session, status='BOOKED').aggregate(
+            qty=Count('id'), total=Sum('price')
+        )
+        booked_qty = booked_data['qty'] or 0
+        booked_sum = booked_data['total'] or 0
+
+        total_real_revenue += sold_sum
+        total_potential_revenue += booked_sum
+
+        if sold_qty == 0 and booked_qty == 0:
+            continue  # Пропускаємо пусті сеанси, щоб не забивати звіт
 
         rows += f"""
         <tr>
-            <td>{session.id}</td>
             <td style="text-align:left">{session.movie.title}</td>
             <td>{session.hall.name}</td>
-            <td>{session.start_time.strftime("%d.%m.%Y %H:%M")}</td>
-            <td>{count}</td>
-            <td class="text-success">{revenue} грн</td>
+            <td>{session.start_time.strftime("%d.%m %H:%M")}</td>
+
+            <td style="background:#f0fff4">{sold_qty}</td>
+            <td style="background:#f0fff4" class="text-money">{sold_sum} грн</td>
+
+            <td style="background:#fff9db">{booked_qty}</td>
+            <td style="background:#fff9db" class="text-pending">{booked_sum} грн</td>
         </tr>
         """
 
     table = f"""
-    <h1>Звіт: Фінансова виручка</h1>
-    <div class="subtitle">Підсумки по кожному сеансу</div>
+    <h1>Звіт: Виручка та Прогнози</h1>
+    <div class="subtitle">Розподіл: Фактична оплата vs Бронювання</div>
     <table>
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Фільм</th>
-                <th>Зал</th>
-                <th>Час початку</th>
-                <th>Квитків продано</th>
-                <th>Виручка</th>
+                <th rowspan="2">Фільм</th>
+                <th rowspan="2">Зал</th>
+                <th rowspan="2">Дата</th>
+                <th colspan="2" style="background:#d4edda">✅ Фактично (SOLD)</th>
+                <th colspan="2" style="background:#fff3cd">⏳ Очікується (BOOKED)</th>
+            </tr>
+            <tr>
+                <th style="background:#e2e6ea">К-сть</th>
+                <th style="background:#e2e6ea">Сума</th>
+                <th style="background:#e2e6ea">К-сть</th>
+                <th style="background:#e2e6ea">Сума</th>
             </tr>
         </thead>
         <tbody>
             {rows}
             <tr class="total-row">
-                <td colspan="5" style="text-align:right; padding-right:20px;">ЗАГАЛЬНА СУМА:</td>
-                <td>{grand_total} грн</td>
+                <td colspan="3" style="text-align:right">ВСЬОГО:</td>
+                <td colspan="2" class="text-money">{total_real_revenue} грн</td>
+                <td colspan="2" class="text-pending">{total_potential_revenue} грн</td>
             </tr>
         </tbody>
     </table>
@@ -177,52 +217,66 @@ def generate_revenue_report(sessions):
 
 def generate_occupancy_report(sessions):
     """
-    Звіт 3: Завантаженість залів.
-    Показує відсотки та графічну шкалу.
+    Звіт 3: Завантаженість.
+    Показує сумарну зайнятість (SOLD + BOOKED), бо місце фізично зайняте.
     """
     rows = ""
 
     for session in sessions:
         total_seats = session.hall.all_components.filter(seat__isnull=False).count()
-        sold = Ticket.objects.filter(session=session, status__in=['SOLD', 'BOOKED']).count()
+
+        # Рахуємо окремо для деталізації
+        sold = Ticket.objects.filter(session=session, status='SOLD').count()
+        booked = Ticket.objects.filter(session=session, status='BOOKED').count()
+
+        occupied = sold + booked
 
         percent = 0
         if total_seats > 0:
-            percent = round((sold / total_seats) * 100, 1)
+            percent = round((occupied / total_seats) * 100, 1)
 
-        status_color = "text-danger"
-        if percent > 50: status_color = "text-warning"
-        if percent > 80: status_color = "text-success"
+        # Прогрес-бар (складений: зелений = продано, жовтий = резерв)
+        if total_seats > 0:
+            pct_sold = round((sold / total_seats) * 100, 1)
+            pct_booked = round((booked / total_seats) * 100, 1)
+        else:
+            pct_sold = 0
+            pct_booked = 0
 
         bar_html = f"""
-        <div style="background:#e9ecef; width:100%; height:20px; border-radius:10px; overflow:hidden;">
-            <div style="width:{percent}%; background:{'#28a745' if percent > 50 else '#dc3545'}; height:100%;"></div>
+        <div style="background:#e9ecef; width:100%; height:20px; border-radius:4px; overflow:hidden; display:flex;">
+            <div style="width:{pct_sold}%; background:#28a745; height:100%;" title="Продано"></div>
+            <div style="width:{pct_booked}%; background:#ffc107; height:100%;" title="Резерв"></div>
         </div>
         """
 
         rows += f"""
         <tr>
             <td>{session.start_time.strftime("%d.%m.%Y")}</td>
-            <td>{session.start_time.strftime("%H:%M")}</td>
             <td style="text-align:left">{session.movie.title}</td>
             <td>{session.hall.name}</td>
-            <td>{sold} / {total_seats}</td>
-            <td class="{status_color}">{percent}%</td>
+            <td>{total_seats}</td>
+            <td>
+                <span class="text-money">{sold}</span> + 
+                <span class="text-pending">{booked}</span> = 
+                <b>{occupied}</b>
+            </td>
+            <td>{percent}%</td>
             <td width="150">{bar_html}</td>
         </tr>
         """
 
     table = f"""
     <h1>Звіт: Завантаженість залів</h1>
-    <div class="subtitle">Ефективність роботи кінотеатру</div>
+    <div class="subtitle">Зелений = Продано, Жовтий = Резерв</div>
     <table>
         <thead>
             <tr>
                 <th>Дата</th>
-                <th>Час</th>
                 <th>Фільм</th>
                 <th>Зал</th>
-                <th>Місця (Зайнято/Всього)</th>
+                <th>Всього місць</th>
+                <th>Зайнято (Прод + Рез)</th>
                 <th>%</th>
                 <th>Графік</th>
             </tr>

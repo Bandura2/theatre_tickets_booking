@@ -15,7 +15,7 @@ class BookingViewSet(viewsets.ModelViewSet):
     serializer_class = BookingSerializer
 
     def get_queryset(self):
-        if self.action in ['cancel', 'retrieve', 'destroy']:
+        if self.action in ['cancel', 'retrieve', 'destroy', 'pay']:
             return Booking.objects.all()
 
         user_id = self.request.query_params.get('user_id')
@@ -37,7 +37,6 @@ class BookingViewSet(viewsets.ModelViewSet):
         seat_ids = request.data.get('seat_ids', [])
         discount_code = request.data.get('discount_type', 'NO')
 
-        # === НОВЕ: Отримуємо додаткові дані ===
         extra_data = {
             'student_id': request.data.get('student_id'),
             'promo_code': request.data.get('promo_code')
@@ -63,8 +62,6 @@ class BookingViewSet(viewsets.ModelViewSet):
                 seat = Seat.objects.get(id=seat_id)
                 base_price = session.price_base * Decimal(seat.get_price_modifier())
 
-                # === ВАЖЛИВО: Передаємо extra_data у calculate ===
-                # Якщо код невірний, тут вилетить помилка ValueError
                 final_price = strategy.calculate(base_price, extra_data)
 
                 ticket, _ = Ticket.objects.get_or_create(
@@ -91,10 +88,28 @@ class BookingViewSet(viewsets.ModelViewSet):
             return Response(BookingSerializer(booking).data, status=status.HTTP_201_CREATED)
 
         except ValueError as ve:
-            # Обробка помилок валідації стратегії (невірний код/квиток)
             return Response({"error": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def pay(self, request, pk=None):
+        booking = self.get_object()
+
+        user_id = request.data.get('user_id')
+        if str(booking.user.id) != str(user_id) and not request.user.is_staff:
+            return Response({"error": "Заборонено"}, status=403)
+
+        updated_count = 0
+        for ticket in booking.tickets.all():
+            if ticket.status == 'BOOKED':
+                BookedState(ticket).pay()
+                updated_count += 1
+
+        if updated_count == 0:
+            return Response({"error": "Замовлення вже оплачено або порожнє"}, status=400)
+
+        return Response({"status": "paid", "updated": updated_count}, status=200)
 
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):

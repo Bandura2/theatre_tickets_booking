@@ -25,3 +25,9 @@ class OnlineBookingCreator(BookingCreator):
         booking.total_price = total
         booking.save()
         return booking
+
+
+class BoxOfficeBookingCreator(BookingCreator):
+
+    def create_booking(self, user, tickets_list):
+        pass

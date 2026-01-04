@@ -56,9 +56,13 @@ async function loadBookings() {
     
     bookings.forEach(booking => {
         const firstTicket = booking.tickets[0];
-        
-        let sessionInfo = "Деталі недоступні (квитки видалено)";
+        let sessionInfo = "Деталі недоступні";
         let seatsInfo = "";
+        
+        // Перевіряємо статус (чи оплачено?)
+        // Якщо хоча б один квиток BOOKED - значить треба платити.
+        // Якщо SOLD - значить оплачено.
+        const isPaid = booking.tickets.every(t => t.status === 'SOLD');
 
         if (firstTicket) {
             const sessionDate = new Date(firstTicket.start_time).toLocaleString('uk-UA', {
@@ -74,9 +78,33 @@ async function loadBookings() {
             `;
 
             seatsInfo = booking.tickets.map(t => {
-                const type = t.is_vip ? '<span class="badge bg-warning text-dark" style="font-size:0.7em">VIP</span>' : '';
-                return `<span class="badge bg-secondary">Місце ${t.seat_number} ${type}</span>`;
+                const type = t.seat_type === 'VIP' ? 'warning' : (t.seat_type === 'BLC' ? 'info' : 'secondary');
+                // Додаємо бейдж "Оплачено" біля місця, якщо треба
+                return `<span class="badge bg-${type} text-dark">Місце ${t.seat_number}</span>`;
             }).join(' ');
+        }
+
+        // === КНОПКИ УПРАВЛІННЯ ===
+        let actionButtons = '';
+        
+        if (isPaid) {
+            // Якщо вже оплачено
+            actionButtons = `
+                <span class="badge bg-success mb-2 p-2">✅ ОПЛАЧЕНО</span>
+                <button class="btn btn-sm btn-outline-secondary w-100" onclick="cancelBooking(${booking.id})">
+                    Повернути квитки
+                </button>
+            `;
+        } else {
+            // Якщо тільки заброньовано
+            actionButtons = `
+                <button class="btn btn-sm btn-success w-100 mb-2" onclick="payBooking(${booking.id})">
+                    💳 Оплатити
+                </button>
+                <button class="btn btn-sm btn-outline-danger w-100" onclick="cancelBooking(${booking.id})">
+                    Скасувати
+                </button>
+            `;
         }
 
         const item = document.createElement('div');
@@ -84,22 +112,36 @@ async function loadBookings() {
         item.innerHTML = `
             <div class="d-flex justify-content-between align-items-start">
                 <div>
-                    <small class="text-muted">Бронювання #${booking.id}</small>
+                    <small class="text-muted">Замовлення #${booking.id}</small>
                     ${sessionInfo}
                     <div class="mt-2">
                         ${seatsInfo}
                     </div>
                 </div>
-                <div class="text-end">
-                    <div class="fw-bold text-success mb-2">${booking.total_price} грн</div>
-                    <button class="btn btn-sm btn-outline-danger" onclick="cancelBooking(${booking.id})">
-                        Скасувати
-                    </button>
+                <div class="text-end" style="min-width: 120px;">
+                    <div class="fw-bold text-dark mb-3" style="font-size: 1.2em;">${booking.total_price} грн</div>
+                    ${actionButtons}
                 </div>
             </div>
         `;
         container.appendChild(item);
     });
+}
+
+async function payBooking(id) {
+    const userStr = localStorage.getItem('currentUser');
+    if (!userStr) return;
+    const user = JSON.parse(userStr);
+
+    if (!confirm(`Підтвердити оплату замовлення #${id}?`)) return;
+
+    const body = { user_id: user.id };
+    const response = await apiRequest(`/bookings/${id}/pay/`, 'POST', body);
+
+    if (response) {
+        alert("Оплата пройшла успішно! Ваші квитки підтверджено.");
+        loadBookings(); 
+    }
 }
 
 async function cancelBooking(id) {

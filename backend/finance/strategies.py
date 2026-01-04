@@ -27,6 +27,6 @@ class PromoDiscountStrategy(DiscountStrategy):
         code = context.get('promo_code', '').upper()
 
         if code != "BANDURA2":
-            raise ValueError("Невірний промокод! Спробуйте: CINEMA2025")
+            raise ValueError("Невірний промокод!")
 
         return base_price * Decimal('0.9')

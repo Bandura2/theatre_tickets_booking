@@ -80,7 +80,7 @@ function filterSessions() {
 
         const matchGenre = genreQuery === "" || session.genre === genreQuery;
 
-        const sessionDate = session.start_time.split('T')[0]; // "YYYY-MM-DD"
+        const sessionDate = session.start_time.split('T')[0];
 
         let matchDate = true;
         if (dateStart && sessionDate < dateStart) matchDate = false;
@@ -161,9 +161,9 @@ async function openHall(hallId, sessionId) {
 
     const viewHall = document.getElementById('view-hall');
 
-    const pStd = basePrice.toFixed(0);
-    const pVip = (basePrice * 1.5).toFixed(0);
-    const pBlc = (basePrice * 0.9).toFixed(0);
+    const pStd = Math.round(basePrice);          
+    const pVip = Math.round(basePrice * 1.5);    
+    const pBlc = Math.round(basePrice * 0.9);
 
     const dateStr = new Date(session.start_time).toLocaleString('uk-UA', {
         day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'
@@ -178,7 +178,6 @@ async function openHall(hallId, sessionId) {
                     <h2 class="text-primary fw-bold mb-0">${session.movie_title}</h2>
                     <p class="text-muted">📍 ${session.hall_name} | 📅 ${dateStr}</p>
                 </div>
-
                 <div class="card border-0 shadow-sm">
                     <div class="card-body bg-dark rounded text-center p-4">
                         <div class="screen mb-5">ЕКРАН</div>
@@ -189,13 +188,11 @@ async function openHall(hallId, sessionId) {
 
             <div class="col-lg-3 mt-4 mt-lg-0">
                 <div class="card shadow-sm sticky-top" style="top: 20px;">
-                    <div class="card-header bg-white fw-bold">
-                        ▼ Ціни
-                    </div>
+                    <div class="card-header bg-white fw-bold">▼ Інформація</div>
                     <div class="card-body">
                         <div class="legend-item">
                             <div class="legend-color standard"></div>
-                            <div>Стандарт: <b>${pStd} ₴</b></div>
+                            <div>Standard: <b>${pStd} ₴</b></div>
                         </div>
                         <div class="legend-item">
                             <div class="legend-color balcony"></div>
@@ -207,12 +204,16 @@ async function openHall(hallId, sessionId) {
                         </div>
                         <hr>
                         <div class="legend-item">
-                            <div class="legend-color occupied"></div>
-                            <div>Недоступно</div>
-                        </div>
-                        <div class="legend-item">
                             <div class="legend-color selected"></div>
                             <div>Ваш вибір</div>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color occupied"></div>
+                            <div>Заброньовано (Резерв)</div>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color sold"></div>
+                            <div>Продано (Оплачено)</div>
                         </div>
                         
                         <hr>
@@ -224,7 +225,6 @@ async function openHall(hallId, sessionId) {
                                 <option value="PROMO">🔥 Промо (-10%)</option>
                             </select>
                         </div>
-
                         <div id="student-input-group" class="mb-2 d-none">
                             <input type="text" id="student-id-input" class="form-control form-control-sm" placeholder="№ Студентського">
                         </div>
@@ -237,9 +237,7 @@ async function openHall(hallId, sessionId) {
                             <span class="h4 mb-0 text-primary fw-bold"><span id="total-price">0</span> ₴</span>
                         </div>
 
-                        <button id="btn-book" class="btn btn-success w-100 py-2" disabled>
-                            Забронювати
-                        </button>
+                        <button id="btn-book" class="btn btn-success w-100 py-2" disabled>Забронювати</button>
                     </div>
                 </div>
             </div>
@@ -247,17 +245,16 @@ async function openHall(hallId, sessionId) {
     `;
 
     document.getElementById('back-to-movies').onclick = () => showView('view-movies');
-
     clearHall();
 
     const hallData = await apiRequest(`/halls/${hallId}/`);
     const tickets = await apiRequest(`/tickets/?session_id=${sessionId}`);
 
-    const occupiedSet = new Set();
+    const occupiedMap = new Map();
     if (tickets) {
         tickets.forEach(t => {
             if (t.status === 'BOOKED' || t.status === 'SOLD') {
-                occupiedSet.add(t.seat);
+                occupiedMap.set(t.seat, t.status);
             }
         });
     }
@@ -265,14 +262,12 @@ async function openHall(hallId, sessionId) {
     const container = document.getElementById('hall-container');
     if (hallData.structure) {
         hallData.structure.forEach(rootComponent => {
-            renderComponent(rootComponent, container, occupiedSet);
+            renderComponent(rootComponent, container, occupiedMap);
         });
     }
 
     const discountSelect = document.getElementById('discount-select');
-    if (discountSelect) {
-        discountSelect.addEventListener('change', handleDiscountChange);
-    }
+    if (discountSelect) discountSelect.addEventListener('change', handleDiscountChange);
 
     const btnBook = document.getElementById('btn-book');
     if (btnBook) btnBook.addEventListener('click', bookTickets);

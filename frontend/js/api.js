@@ -1,4 +1,3 @@
-// Функція для виконання запитів
 async function apiRequest(endpoint, method = "GET", body = null) {
     const headers = {
         "Content-Type": "application/json"

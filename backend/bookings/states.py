@@ -10,6 +10,9 @@ class TicketState(ABC):
     @abstractmethod
     def cancel(self): pass
 
+    @abstractmethod
+    def pay(self): pass
+
 
 class FreeState(TicketState):
     def book(self):
@@ -17,6 +20,8 @@ class FreeState(TicketState):
         self.ticket.save()
 
     def cancel(self): raise Exception("Cannot cancel free ticket")
+
+    def pay(self): raise Exception("Cannot pay for free ticket (book it first)")
 
 
 class BookedState(TicketState):
@@ -27,6 +32,10 @@ class BookedState(TicketState):
         self.ticket.booking = None
         self.ticket.save()
 
+    def pay(self):
+        self.ticket.status = 'SOLD'
+        self.ticket.save()
+
 
 class SoldState(TicketState):
     def book(self): raise Exception("Already sold")
@@ -35,3 +44,5 @@ class SoldState(TicketState):
         self.ticket.status = 'FREE'
         self.ticket.booking = None
         self.ticket.save()
+
+    def pay(self): raise Exception("Already paid")

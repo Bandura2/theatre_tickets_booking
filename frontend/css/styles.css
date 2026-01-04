@@ -75,6 +75,14 @@
     opacity: 0.6;
 }
 
+.seat.sold {
+    background-color: #dc3545;
+    color: white;
+    cursor: not-allowed;
+    opacity: 0.9;
+    border: none;
+}
+
 .legend-item {
     display: flex;
     align-items: center;
@@ -105,6 +113,10 @@
 
 .legend-color.occupied {
     background-color: #6c757d;
+}
+
+.legend-color.sold {
+    background-color: #dc3545;
 }
 
 .legend-color.selected {

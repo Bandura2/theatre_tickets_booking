@@ -1,5 +1,5 @@
 let selectedSeats = [];
-let seatInfo = {}; 
+let seatInfo = {};
 
 document.addEventListener("DOMContentLoaded", () => {
     const bookBtn = document.getElementById('btn-book');
@@ -32,9 +32,9 @@ function clearHall() {
     document.getElementById('hall-container').innerHTML = '';
     selectedSeats = [];
     seatInfo = {};
-    
+
     const discountSelect = document.getElementById('discount-select');
-    if(discountSelect) {
+    if (discountSelect) {
         discountSelect.value = "NO";
         handleDiscountChange();
     }
@@ -44,35 +44,44 @@ function clearHall() {
     updateTotalPrice();
 }
 
-function renderComponent(component, container, occupiedSet = new Set()) {
+function renderComponent(component, container, occupiedMap = new Map()) {
     if (component.type === 'group') {
         const groupDiv = document.createElement('div');
         groupDiv.className = 'seat-group';
         groupDiv.innerHTML = `<div class="small text-muted mb-1">${component.name}</div>`;
         if (component.children) {
-            component.children.forEach(child => renderComponent(child, groupDiv, occupiedSet));
+            component.children.forEach(child => renderComponent(child, groupDiv, occupiedMap));
         }
         container.appendChild(groupDiv);
-    } 
+    }
     else if (component.type === 'seat') {
         const seatBtn = document.createElement('button');
         const seatId = component.seat_details.id;
         const seatNum = component.seat_details.number;
-        const type = component.seat_details.seat_type; 
+        const type = component.seat_details.seat_type;
 
         seatInfo[seatId] = { type: type };
-        
-        if (occupiedSet.has(seatId)) {
-            seatBtn.className = 'seat occupied';
+
+        const status = occupiedMap.get(seatId);
+
+        seatBtn.textContent = seatNum;
+
+        if (status) {
             seatBtn.disabled = true;
-            seatBtn.textContent = seatNum;
+
+            if (status === 'SOLD') {
+                seatBtn.className = 'seat sold'; 
+                seatBtn.title = "Місце продано (Оплачено)";
+            } else {
+                seatBtn.className = 'seat occupied'; 
+                seatBtn.title = "Місце заброньовано (Очікує оплати)";
+            }
         } else {
             let cssClass = 'standard';
             if (type === 'VIP') cssClass = 'vip';
             if (type === 'BLC') cssClass = 'balcony';
-            
+
             seatBtn.className = `seat ${cssClass}`;
-            seatBtn.textContent = seatNum;
             seatBtn.title = `Місце ${seatNum} (${type})`;
             seatBtn.onclick = () => toggleSeat(seatId, seatBtn);
         }
@@ -94,7 +103,7 @@ function updateTotalPrice() {
     const btn = document.getElementById('btn-book');
     const priceSpan = document.getElementById('total-price');
     const discountSelect = document.getElementById('discount-select');
-    
+
     let total = 0;
     const basePrice = window.currentSessionBasePrice || 0;
 
@@ -113,14 +122,14 @@ function updateTotalPrice() {
         }
     });
 
-    priceSpan.innerText = total.toFixed(2);
+    priceSpan.innerText = Math.round(total);
     btn.disabled = selectedSeats.length === 0;
 }
 
 async function bookTickets() {
     const userStr = localStorage.getItem('currentUser');
     if (!userStr) {
-        if(confirm("Увійдіть для бронювання.")) showView('view-login');
+        if (confirm("Увійдіть для бронювання.")) showView('view-login');
         return;
     }
     const user = JSON.parse(userStr);
@@ -129,7 +138,7 @@ async function bookTickets() {
         alert("Помилка: Сеанс не обрано.");
         return;
     }
-    
+
     const discountType = document.getElementById('discount-select').value;
     const studentId = document.getElementById('student-id-input').value;
     const promoCode = document.getElementById('promo-code-input').value;
@@ -151,9 +160,9 @@ async function bookTickets() {
 
     if (response) {
         alert(`Успішно! Бронювання #${response.id}\nСума: ${response.total_price} грн`);
-        showView('view-movies'); 
+        showView('view-movies');
     }
-    
+
     btn.disabled = false;
     btn.innerText = "Забронювати";
 }
